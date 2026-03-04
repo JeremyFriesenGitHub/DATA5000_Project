@@ -1,0 +1,257 @@
+[
+  {
+    "arch": "FPN",
+    "encoder": "efficientnet-b3",
+    "lr": 0.0001,
+    "batch_size": 2,
+    "best_val_miou": 0.35823232035172925,
+    "val_accuracy": 0.7606628322601245,
+    "per_class_iou": {
+      "background": 0.6922669443004399,
+      "building": 0.1315253136823594,
+      "woodland": 0.579577496877678,
+      "water": 0.21061639717779834,
+      "road": 0.07420651898372708
+    },
+    "params": 12475309,
+    "time_seconds": 296.52091670036316
+  },
+  {
+    "arch": "FPN",
+    "encoder": "resnet34",
+    "lr": 0.0001,
+    "batch_size": 4,
+    "best_val_miou": 0.3545653127636474,
+    "val_accuracy": 0.7384662532806326,
+    "per_class_iou": {
+      "background": 0.6670311010161344,
+      "building": 0.13140077129729694,
+      "woodland": 0.5952716502282006,
+      "water": 0.30333579734329563,
+      "road": 0.07578724393330938
+    },
+    "params": 23155909,
+    "time_seconds": 209.47967100143433
+  },
+  {
+    "arch": "DeepLabV3Plus",
+    "encoder": "efficientnet-b3",
+    "lr": 0.0001,
+    "batch_size": 2,
+    "best_val_miou": 0.33090703467551447,
+    "val_accuracy": 0.7472597789764334,
+    "per_class_iou": {
+      "background": 0.6749701831684874,
+      "building": 0.15946488959509367,
+      "woodland": 0.5732392862418502,
+      "water": 0.24667879405272988,
+      "road": 0.00018202031941116692
+    },
+    "params": 11681213,
+    "time_seconds": 317.11391043663025
+  },
+  {
+    "arch": "PSPNet",
+    "encoder": "resnet34",
+    "lr": 0.0001,
+    "batch_size": 4,
+    "best_val_miou": 0.3288813472168753,
+    "val_accuracy": 0.6862745285034114,
+    "per_class_iou": {
+      "background": 0.5589232417639358,
+      "building": 0.11665241860040856,
+      "woodland": 0.557995509581506,
+      "water": 0.29899847194497964,
+      "road": 0.11183709419354652
+    },
+    "params": 21456421,
+    "time_seconds": 155.06635427474976
+  },
+  {
+    "arch": "Unet",
+    "encoder": "mobilenet_v2",
+    "lr": 0.0001,
+    "batch_size": 4,
+    "best_val_miou": 0.3247558333813272,
+    "val_accuracy": 0.7501782608032155,
+    "per_class_iou": {
+      "background": 0.6689783457440205,
+      "building": 0.06992660939184767,
+      "woodland": 0.6083153041023114,
+      "water": 0.27643672783142315,
+      "road": 0.00012217983703334607
+    },
+    "params": 6629525,
+    "time_seconds": 229.5159718990326
+  },
+  {
+    "arch": "FPN",
+    "encoder": "resnet50",
+    "lr": 0.0001,
+    "batch_size": 2,
+    "best_val_miou": 0.3057518448390423,
+    "val_accuracy": 0.7296847438812186,
+    "per_class_iou": {
+      "background": 0.6610232341236866,
+      "building": 0.0026636568848758466,
+      "woodland": 0.523552456533434,
+      "water": 0.2850789537410149,
+      "road": 0.0
+    },
+    "params": 26116549,
+    "time_seconds": 277.457643032074
+  },
+  {
+    "arch": "Unet",
+    "encoder": "resnet34",
+    "lr": 5e-05,
+    "batch_size": 4,
+    "best_val_miou": 0.29109337934058926,
+    "val_accuracy": 0.7184572792053154,
+    "per_class_iou": {
+      "background": 0.6352971759731207,
+      "building": 0.00022299349802775667,
+      "woodland": 0.5440400951476991,
+      "water": 0.2755565317750555,
+      "road": 0.000350100309043091
+    },
+    "params": 24436949,
+    "time_seconds": 246.74593377113342
+  },
+  {
+    "arch": "Unet",
+    "encoder": "resnet34",
+    "lr": 0.0001,
+    "batch_size": 4,
+    "best_val_miou": 0.2849015486953206,
+    "val_accuracy": 0.7396171474456716,
+    "per_class_iou": {
+      "background": 0.6610777456231389,
+      "building": 0.00012025557083931913,
+      "woodland": 0.5969293469631057,
+      "water": 0.16635913455625748,
+      "road": 2.1260763261401083e-05
+    },
+    "params": 24436949,
+    "time_seconds": 246.24397349357605
+  },
+  {
+    "arch": "DeepLabV3Plus",
+    "encoder": "resnet50",
+    "lr": 0.0001,
+    "batch_size": 2,
+    "best_val_miou": 0.26669645146186527,
+    "val_accuracy": 0.743440179824822,
+    "per_class_iou": {
+      "background": 0.665707125317413,
+      "building": 0.009859970313084467,
+      "woodland": 0.5748856941933113,
+      "water": 0.06738838301533712,
+      "road": 0.015641084470180724
+    },
+    "params": 26678613,
+    "time_seconds": 293.105881690979
+  },
+  {
+    "arch": "Unet",
+    "encoder": "efficientnet-b3",
+    "lr": 0.0001,
+    "batch_size": 2,
+    "best_val_miou": 0.26595195036038777,
+    "val_accuracy": 0.7093312931060723,
+    "per_class_iou": {
+      "background": 0.6025281034171858,
+      "building": 0.04372767947115966,
+      "woodland": 0.5626018796194974,
+      "water": 0.06174063548292613,
+      "road": 0.05916145381116986
+    },
+    "params": 13159613,
+    "time_seconds": 338.4507796764374
+  },
+  {
+    "arch": "LinkNet",
+    "encoder": "resnet34",
+    "lr": 0.0001,
+    "batch_size": 4,
+    "best_val_miou": 0.2633987891310906,
+    "val_accuracy": 0.6914044094085627,
+    "per_class_iou": {
+      "background": 0.5809887439042858,
+      "building": 0.004214387169852029,
+      "woodland": 0.5490003909057544,
+      "water": 0.18205170815093805,
+      "road": 0.0007387155246230565
+    },
+    "params": 21772069,
+    "time_seconds": 209.06385374069214
+  },
+  {
+    "arch": "MAnet",
+    "encoder": "resnet34",
+    "lr": 0.0001,
+    "batch_size": 2,
+    "best_val_miou": 0.25490356735274144,
+    "val_accuracy": 0.7418326187133718,
+    "per_class_iou": {
+      "background": 0.6652726365030556,
+      "building": 0.02942179253037459,
+      "woodland": 0.5732020634338291,
+      "water": 3.2629751299661124e-05,
+      "road": 0.006588714545148479
+    },
+    "params": 31784213,
+    "time_seconds": 296.6048994064331
+  },
+  {
+    "arch": "DeepLabV3Plus",
+    "encoder": "resnet34",
+    "lr": 0.0001,
+    "batch_size": 2,
+    "best_val_miou": 0.24811615787128266,
+    "val_accuracy": 0.699418926239007,
+    "per_class_iou": {
+      "background": 0.6116080195159513,
+      "building": 0.002102964186765807,
+      "woodland": 0.5401685054517079,
+      "water": 0.08263203631629443,
+      "road": 0.00406926388569381
+    },
+    "params": 22438485,
+    "time_seconds": 238.1791181564331
+  },
+  {
+    "arch": "Unet",
+    "encoder": "resnet50",
+    "lr": 0.0001,
+    "batch_size": 2,
+    "best_val_miou": 0.2366496612692289,
+    "val_accuracy": 0.7186112689971855,
+    "per_class_iou": {
+      "background": 0.6381329399324311,
+      "building": 0.0,
+      "woodland": 0.5436052256640783,
+      "water": 0.0005387622701975184,
+      "road": 0.0009713784794372973
+    },
+    "params": 32521685,
+    "time_seconds": 338.1818459033966
+  },
+  {
+    "arch": "Unet",
+    "encoder": "resnet34",
+    "lr": 0.001,
+    "batch_size": 4,
+    "best_val_miou": 0.22895023992938346,
+    "val_accuracy": 0.7046985626220637,
+    "per_class_iou": {
+      "background": 0.6184800650844121,
+      "building": 0.0,
+      "woodland": 0.5261714437309621,
+      "water": 9.969083154297662e-05,
+      "road": 0.0
+    },
+    "params": 24436949,
+    "time_seconds": 245.07753109931946
+  }
+]
