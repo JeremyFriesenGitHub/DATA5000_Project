@@ -1,0 +1,13 @@
+{
+  "total_buildings": 1002,
+  "gsd_m": 0.06,
+  "risk_distribution": {
+    "high": 1,
+    "moderate": 349,
+    "low": 652
+  },
+  "mean_risk_score": 3.17,
+  "median_risk_score": 3.3,
+  "mean_min_distance_m": 6.88,
+  "tiles_processed": 350
+}
