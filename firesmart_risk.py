@@ -339,6 +339,7 @@ def process_tile(tile_name, building_mask, woodland_mask, orig_image, gsd, outpu
             "zone_1a_veg_density": round(zone_veg["zone_1a"]["veg_density"], 3),
             "zone_1b_veg_density": round(zone_veg["zone_1b"]["veg_density"], 3),
             "zone_2_veg_density": round(zone_veg["zone_2"]["veg_density"], 3),
+            "overlay_image": f"overlay/{tile_name}.png",
         })
 
     # Generate overlay
@@ -475,7 +476,8 @@ def main():
     with open(csv_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=[
             "tile", "id", "centroid", "area_m2", "min_veg_distance_m",
-            "risk_score", "zone_1a_veg_density", "zone_1b_veg_density", "zone_2_veg_density"
+            "risk_score", "zone_1a_veg_density", "zone_1b_veg_density", "zone_2_veg_density",
+            "overlay_image"
         ])
         writer.writeheader()
         for bld in all_buildings:
