@@ -13,6 +13,7 @@
 | `zone_1a_veg_density` | Zone 1a Vegetation Density | Float (0–1) | Fraction of pixels within FireSmart Zone 1a (0–1.5 m from building edge) classified as vegetation. |
 | `zone_1b_veg_density` | Zone 1b Vegetation Density | Float (0–1) | Fraction of pixels within FireSmart Zone 1b (1.5–10 m from building edge) classified as vegetation. |
 | `zone_2_veg_density` | Zone 2 Vegetation Density | Float (0–1) | Fraction of pixels within FireSmart Zone 2 (10–30 m from building edge) classified as vegetation. |
+| `overlay_image` | Overlay Image | String (path) | Relative path to the risk overlay image for this tile. Shows FireSmart zones, vegetation, buildings, and risk scores. |
 
 ---
 
