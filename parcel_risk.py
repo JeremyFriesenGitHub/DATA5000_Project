@@ -503,12 +503,14 @@ def main():
         adjusted_pts = [(int(px - px_min), int(py - py_min)) for px, py in pixel_points]
         parcel_mask = create_parcel_mask(pixel_points, px_min, py_min, crop_h, crop_w)
 
-        # Only consider buildings whose centroid falls within the parcel
+        # Assign buildings to parcel if any building pixels overlap the parcel
         buildings = extract_buildings(b_crop)
         parcel_buildings = []
         for bld in buildings:
-            cx, cy = bld["centroid"]
-            if 0 <= cy < crop_h and 0 <= cx < crop_w and parcel_mask[cy, cx] == 1:
+            bld_mask_single = np.zeros((crop_h, crop_w), dtype=np.uint8)
+            cv2.drawContours(bld_mask_single, [bld["contour"]], -1, 1, -1)
+            overlap = (bld_mask_single & parcel_mask).sum()
+            if overlap > 0:
                 parcel_buildings.append(bld)
 
         if not parcel_buildings:
