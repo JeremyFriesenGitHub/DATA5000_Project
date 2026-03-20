@@ -18,3 +18,10 @@ cumberland_combined_v10
 checkpoints_binary/*.pth
 checkpoints_binary/*.pth
 checkpoints_combined/*.pth
+cumberland_geotiff_results
+cumberland_geotiff_tiles
+cumberland_final
+tif
+ParcelsSubdivisonOnly
+firesmart_property_results
+firesmart_results
