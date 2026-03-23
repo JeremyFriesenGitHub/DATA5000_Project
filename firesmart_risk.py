@@ -366,7 +366,7 @@ def main():
 
     tiles_dir = Path(args.tiles_dir)
     tile_files = sorted(
-        list(tiles_dir.glob("*.png")) + list(tiles_dir.glob("*.jpg"))
+        list(tiles_dir.glob("*.png")) + list(tiles_dir.glob("*.jpg")) + list(tiles_dir.glob("*.tif"))
     )
     print(f"Found {len(tile_files)} tiles")
     print(f"GSD: {args.gsd} m/pixel")

@@ -232,7 +232,7 @@ def meters_to_pixels(meters, gsd):
 # RISK SCORING (same as firesmart_risk.py)
 # ============================================================
 
-def compute_building_risk(building_mask_single, woodland_mask, gsd):
+def compute_building_risk(building_mask_single, woodland_mask, gsd, parcel_mask=None):
     h, w = building_mask_single.shape
 
     building_border = cv2.dilate(building_mask_single, np.ones((3, 3), np.uint8)) - building_mask_single
@@ -243,11 +243,30 @@ def compute_building_risk(building_mask_single, woodland_mask, gsd):
 
     veg_pixels = woodland_mask > 0
 
+    # Split vegetation into on-parcel and off-parcel
+    if parcel_mask is not None:
+        on_parcel = parcel_mask > 0
+        veg_on_parcel = veg_pixels & on_parcel
+        veg_off_parcel = veg_pixels & ~on_parcel
+    else:
+        veg_on_parcel = veg_pixels
+        veg_off_parcel = np.zeros_like(veg_pixels)
+
     if veg_pixels.any():
         veg_distances = dist_from_building[veg_pixels]
         min_distance_m = float(veg_distances.min()) * gsd
     else:
         min_distance_m = 999.0
+
+    # Min distance split by on/off parcel
+    if veg_on_parcel.any():
+        min_dist_on = float(dist_from_building[veg_on_parcel].min()) * gsd
+    else:
+        min_dist_on = 999.0
+    if veg_off_parcel.any():
+        min_dist_off = float(dist_from_building[veg_off_parcel].min()) * gsd
+    else:
+        min_dist_off = 999.0
 
     zone_vegetation = {}
     for zone_name, zone_def in ZONES.items():
@@ -260,14 +279,32 @@ def compute_building_risk(building_mask_single, woodland_mask, gsd):
         zone_total = zone_ring.sum()
         zone_veg = (zone_ring & veg_pixels).sum()
 
+        # On/off parcel vegetation within this zone
+        zone_veg_on = int((zone_ring & veg_on_parcel).sum())
+        zone_veg_off = int((zone_ring & veg_off_parcel).sum())
+
+        # On/off parcel area within this zone
+        if parcel_mask is not None:
+            zone_on_total = int((zone_ring & on_parcel).sum())
+            zone_off_total = int((zone_ring & ~on_parcel).sum())
+        else:
+            zone_on_total = int(zone_total)
+            zone_off_total = 0
+
         zone_vegetation[zone_name] = {
             "veg_pixels": int(zone_veg),
             "total_pixels": int(zone_total),
             "veg_density": float(zone_veg / zone_total) if zone_total > 0 else 0.0,
+            "on_parcel_veg": zone_veg_on,
+            "on_parcel_total": zone_on_total,
+            "on_parcel_density": float(zone_veg_on / zone_on_total) if zone_on_total > 0 else 0.0,
+            "off_parcel_veg": zone_veg_off,
+            "off_parcel_total": zone_off_total,
+            "off_parcel_density": float(zone_veg_off / zone_off_total) if zone_off_total > 0 else 0.0,
         }
 
     risk_score = compute_risk_score(min_distance_m, zone_vegetation)
-    return min_distance_m, zone_vegetation, risk_score
+    return min_distance_m, min_dist_on, min_dist_off, zone_vegetation, risk_score
 
 
 def compute_risk_score(min_distance_m, zone_vegetation):
@@ -525,9 +562,17 @@ def main():
                 "max_risk_score": None,
                 "mean_risk_score": None,
                 "min_veg_distance_m": None,
+                "min_veg_dist_on_parcel": None,
+                "min_veg_dist_off_parcel": None,
                 "zone_1a_veg_density": None,
                 "zone_1b_veg_density": None,
                 "zone_2_veg_density": None,
+                "zone_1a_on_parcel": None,
+                "zone_1a_off_parcel": None,
+                "zone_1b_on_parcel": None,
+                "zone_1b_off_parcel": None,
+                "zone_2_on_parcel": None,
+                "zone_2_off_parcel": None,
                 "overlay_image": "",
             })
             continue
@@ -538,8 +583,11 @@ def main():
             bld_mask = np.zeros_like(b_crop)
             cv2.drawContours(bld_mask, [bld["contour"]], -1, 1, -1)
 
-            min_dist, zone_veg, risk_score = compute_building_risk(bld_mask, w_crop, gsd)
+            min_dist, min_dist_on, min_dist_off, zone_veg, risk_score = \
+                compute_building_risk(bld_mask, w_crop, gsd, parcel_mask)
             bld["min_distance_m"] = min_dist
+            bld["min_dist_on_parcel"] = min_dist_on
+            bld["min_dist_off_parcel"] = min_dist_off
             bld["zone_vegetation"] = zone_veg
             bld["risk_score"] = risk_score
             bld["area_m2"] = bld["area_px"] * gsd * gsd
@@ -547,14 +595,24 @@ def main():
             building_results.append({
                 "risk_score": risk_score,
                 "min_distance_m": min_dist,
+                "min_dist_on_parcel": min_dist_on,
+                "min_dist_off_parcel": min_dist_off,
                 "zone_1a": zone_veg["zone_1a"]["veg_density"],
                 "zone_1b": zone_veg["zone_1b"]["veg_density"],
                 "zone_2": zone_veg["zone_2"]["veg_density"],
+                "zone_1a_on": zone_veg["zone_1a"]["on_parcel_density"],
+                "zone_1a_off": zone_veg["zone_1a"]["off_parcel_density"],
+                "zone_1b_on": zone_veg["zone_1b"]["on_parcel_density"],
+                "zone_1b_off": zone_veg["zone_1b"]["off_parcel_density"],
+                "zone_2_on": zone_veg["zone_2"]["on_parcel_density"],
+                "zone_2_off": zone_veg["zone_2"]["off_parcel_density"],
             })
 
         # Aggregate per-property
         risk_scores = [b["risk_score"] for b in building_results]
         min_dists = [b["min_distance_m"] for b in building_results if b["min_distance_m"] < 999]
+        min_dists_on = [b["min_dist_on_parcel"] for b in building_results if b["min_dist_on_parcel"] < 999]
+        min_dists_off = [b["min_dist_off_parcel"] for b in building_results if b["min_dist_off_parcel"] < 999]
 
         overlay_name = f"parcel_{pid}.png"
 
@@ -575,9 +633,17 @@ def main():
             "max_risk_score": max(risk_scores),
             "mean_risk_score": round(np.mean(risk_scores), 1),
             "min_veg_distance_m": round(min(min_dists), 2) if min_dists else 999.0,
+            "min_veg_dist_on_parcel": round(min(min_dists_on), 2) if min_dists_on else 999.0,
+            "min_veg_dist_off_parcel": round(min(min_dists_off), 2) if min_dists_off else 999.0,
             "zone_1a_veg_density": round(np.mean([b["zone_1a"] for b in building_results]), 3),
             "zone_1b_veg_density": round(np.mean([b["zone_1b"] for b in building_results]), 3),
             "zone_2_veg_density": round(np.mean([b["zone_2"] for b in building_results]), 3),
+            "zone_1a_on_parcel": round(np.mean([b["zone_1a_on"] for b in building_results]), 3),
+            "zone_1a_off_parcel": round(np.mean([b["zone_1a_off"] for b in building_results]), 3),
+            "zone_1b_on_parcel": round(np.mean([b["zone_1b_on"] for b in building_results]), 3),
+            "zone_1b_off_parcel": round(np.mean([b["zone_1b_off"] for b in building_results]), 3),
+            "zone_2_on_parcel": round(np.mean([b["zone_2_on"] for b in building_results]), 3),
+            "zone_2_off_parcel": round(np.mean([b["zone_2_off"] for b in building_results]), 3),
             "overlay_image": f"overlay/{overlay_name}",
         })
         parcels_processed += 1
@@ -616,7 +682,11 @@ def main():
     fieldnames = [
         "pid", "pid_format", "owner_type", "parcel_area_m2", "num_buildings",
         "max_risk_score", "mean_risk_score", "min_veg_distance_m",
+        "min_veg_dist_on_parcel", "min_veg_dist_off_parcel",
         "zone_1a_veg_density", "zone_1b_veg_density", "zone_2_veg_density",
+        "zone_1a_on_parcel", "zone_1a_off_parcel",
+        "zone_1b_on_parcel", "zone_1b_off_parcel",
+        "zone_2_on_parcel", "zone_2_off_parcel",
         "overlay_image"
     ]
     with open(csv_path, "w", newline="") as f:

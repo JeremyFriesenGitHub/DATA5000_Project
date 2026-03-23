@@ -21,10 +21,13 @@ Usage:
 import argparse
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from pathlib import Path
 from PIL import Image
 import segmentation_models_pytorch as smp
+import timm
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 import cv2
@@ -65,7 +68,8 @@ class InferenceDataset(Dataset):
         self.tiles_dir = Path(tiles_dir)
         self.tiles = sorted(
             list(self.tiles_dir.glob("*.png")) +
-            list(self.tiles_dir.glob("*.jpg"))
+            list(self.tiles_dir.glob("*.jpg")) +
+            list(self.tiles_dir.glob("*.tif"))
         )
         self.transform = transform
         print(f"Found {len(self.tiles)} tiles")
@@ -191,6 +195,61 @@ class BinaryMetrics:
 
 
 # ============================================================
+# CONVNEXT-BASE + MLP DECODER (from train_segformer.py)
+# ============================================================
+
+class MLPDecoder(nn.Module):
+    def __init__(self, encoder_channels, embed_dim=256, num_classes=1, dropout=0.1):
+        super().__init__()
+        self.projections = nn.ModuleList([
+            nn.Sequential(
+                nn.Conv2d(ch, embed_dim, 1, bias=False),
+                nn.BatchNorm2d(embed_dim),
+                nn.GELU(),
+            ) for ch in encoder_channels
+        ])
+        self.fusion = nn.Sequential(
+            nn.Conv2d(embed_dim * len(encoder_channels), embed_dim, 1, bias=False),
+            nn.BatchNorm2d(embed_dim),
+            nn.GELU(),
+            nn.Dropout2d(dropout),
+            nn.Conv2d(embed_dim, embed_dim, 3, padding=1, bias=False),
+            nn.BatchNorm2d(embed_dim),
+            nn.GELU(),
+            nn.Dropout2d(dropout),
+        )
+        self.classifier = nn.Conv2d(embed_dim, num_classes, 1)
+
+    def forward(self, features):
+        target_size = features[0].shape[2:]
+        projected = []
+        for feat, proj in zip(features, self.projections):
+            x = proj(feat)
+            if x.shape[2:] != target_size:
+                x = F.interpolate(x, size=target_size, mode='bilinear', align_corners=False)
+            projected.append(x)
+        x = torch.cat(projected, dim=1)
+        x = self.fusion(x)
+        return self.classifier(x)
+
+
+class SegModel(nn.Module):
+    def __init__(self, encoder_name='convnext_base', num_classes=1, dropout=0.1, pretrained=False):
+        super().__init__()
+        self.encoder = timm.create_model(encoder_name, pretrained=pretrained, features_only=True)
+        encoder_channels = self.encoder.feature_info.channels()
+        self.decoder = MLPDecoder(encoder_channels=encoder_channels, embed_dim=256,
+                                  num_classes=num_classes, dropout=dropout)
+
+    def forward(self, x):
+        input_size = x.shape[2:]
+        features = self.encoder(x)
+        logits = self.decoder(features)
+        logits = F.interpolate(logits, size=input_size, mode='bilinear', align_corners=False)
+        return logits
+
+
+# ============================================================
 # MODEL LOADING
 # ============================================================
 
@@ -216,8 +275,22 @@ def load_model(checkpoint_path, device):
     arch = checkpoint.get("arch", "FPN")
     encoder = checkpoint.get("encoder", "efficientnet-b3")
     task = checkpoint.get("task", "unknown")
-    model = build_model(arch, encoder)
-    model.load_state_dict(checkpoint["model_state_dict"])
+    dropout = checkpoint.get("dropout", 0.1)
+
+    if "ConvNeXt" in arch or "convnext" in encoder:
+        # New ConvNeXt-Base + MLP decoder model
+        model = SegModel(encoder_name=encoder, num_classes=1, dropout=dropout, pretrained=False)
+        # Prefer EMA weights if available (smoother predictions)
+        if "ema_state_dict" in checkpoint:
+            model.load_state_dict(checkpoint["ema_state_dict"])
+            print(f"  (using EMA weights)")
+        else:
+            model.load_state_dict(checkpoint["model_state_dict"])
+    else:
+        # Legacy smp model
+        model = build_model(arch, encoder)
+        model.load_state_dict(checkpoint["model_state_dict"])
+
     model = model.to(device)
     model.eval()
     iou = checkpoint.get("best_iou", "?")
