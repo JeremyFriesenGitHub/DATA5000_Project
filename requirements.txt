@@ -1,0 +1,17 @@
+numpy
+torch
+torchvision
+timm
+segmentation_models_pytorch
+albumentations
+opencv-python-headless
+Pillow
+scipy
+rasterio
+pyproj
+shapely
+geopandas
+fiona
+pyshp
+requests
+tqdm
