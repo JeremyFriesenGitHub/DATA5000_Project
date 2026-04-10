@@ -369,7 +369,7 @@ def train_one_epoch(model, loader, criterion, optimizer, scaler, scheduler,
             if scheduler is not None:
                 scheduler.step()
             if ema is not None:
-                ema.update(model)
+                ema.update(model.module if hasattr(model, 'module') else model)
 
         if (batch_idx + 1) % 200 == 0:
             current_lr = optimizer.param_groups[0]["lr"]
@@ -384,7 +384,7 @@ def train_one_epoch(model, loader, criterion, optimizer, scaler, scheduler,
         if scheduler is not None:
             scheduler.step()
         if ema is not None:
-            ema.update(model)
+            ema.update(model.module if hasattr(model, 'module') else model)
 
     return total_loss / num_batches
 
@@ -424,11 +424,11 @@ def main():
                         help="Which task to train")
     parser.add_argument("--binary_masks", action="store_true",
                         help="Use if masks are binary 0/255 (combined dataset)")
-    parser.add_argument("--encoder", type=str, default="convnext_base",
-                        help="Encoder name from timm (default: convnext_base)")
+    parser.add_argument("--encoder", type=str, default="convnext_xlarge",
+                        help="Encoder name from timm (default: convnext_xlarge)")
     parser.add_argument("--epochs", type=int, default=80,
                         help="Maximum number of epochs")
-    parser.add_argument("--batch_size", type=int, default=4,
+    parser.add_argument("--batch_size", type=int, default=6,
                         help="Batch size per GPU")
     parser.add_argument("--lr", type=float, default=6e-5,
                         help="Peak learning rate (decoder). Encoder gets lr/10.")
@@ -448,14 +448,21 @@ def main():
                         help="DataLoader workers")
     parser.add_argument("--save_dir", type=str, default="checkpoints_segformer",
                         help="Directory to save checkpoints and logs")
+    parser.add_argument("--gpu", type=int, default=None,
+                        help="GPU index to use (default: auto-select, use with CUDA_VISIBLE_DEVICES for parallel training)")
     args = parser.parse_args()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if args.gpu is not None:
+        device = torch.device(f"cuda:{args.gpu}")
+        torch.cuda.set_device(device)
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    num_gpus = torch.cuda.device_count() if device.type == "cuda" else 0
     print(f"Device: {device}")
     if device.type == "cuda":
-        print(f"GPU: {torch.cuda.get_device_name(0)}")
-        total_mem = torch.cuda.get_device_properties(0).total_memory
-        print(f"VRAM: {total_mem / 1024**3:.1f} GB")
+        for gpu_i in range(num_gpus):
+            print(f"  GPU {gpu_i}: {torch.cuda.get_device_name(gpu_i)}, "
+                  f"{torch.cuda.get_device_properties(gpu_i).total_memory / 1024**3:.1f} GB")
 
     save_dir = Path(args.save_dir)
     save_dir.mkdir(parents=True, exist_ok=True)
@@ -508,7 +515,7 @@ def main():
     decoder_params = sum(p.numel() for p in model.decoder.parameters())
     encoder_channels = model.encoder.feature_info.channels()
 
-    print(f"\nModel: ConvNeXt-Base + MLP Decoder")
+    print(f"\nModel: {args.encoder} + MLP Decoder")
     print(f"  Encoder: {args.encoder} ({encoder_params:,} params)")
     print(f"  Encoder channels: {encoder_channels}")
     print(f"  Decoder: MLP (embed_dim=256, {decoder_params:,} params)")
@@ -518,9 +525,10 @@ def main():
     # --------------------------------------------------------
     # EMA
     # --------------------------------------------------------
+    base_model = model
     ema = None
     if args.ema_decay > 0:
-        ema = ModelEMA(model, decay=args.ema_decay)
+        ema = ModelEMA(base_model, decay=args.ema_decay)
         print(f"  EMA: enabled (decay={args.ema_decay})")
 
     # --------------------------------------------------------
@@ -532,8 +540,8 @@ def main():
     encoder_lr = args.lr / 10.0
     decoder_lr = args.lr
     param_groups = [
-        {"params": model.encoder.parameters(), "lr": encoder_lr},
-        {"params": model.decoder.parameters(), "lr": decoder_lr},
+        {"params": base_model.encoder.parameters(), "lr": encoder_lr},
+        {"params": base_model.decoder.parameters(), "lr": decoder_lr},
     ]
     optimizer = torch.optim.AdamW(param_groups, weight_decay=args.weight_decay)
 
@@ -651,10 +659,10 @@ def main():
 
             save_dict = {
                 "epoch": epoch,
-                "model_state_dict": model.state_dict(),
+                "model_state_dict": base_model.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "best_iou": best_iou,
-                "arch": "ConvNeXt-Base + MLP",
+                "arch": f"{args.encoder} + MLP",
                 "encoder": args.encoder,
                 "task": args.task,
                 "target_class": target_class,
@@ -696,7 +704,7 @@ def main():
     )
 
     # Evaluate raw model
-    model.load_state_dict(checkpoint["model_state_dict"])
+    base_model.load_state_dict(checkpoint["model_state_dict"])
     test_loss, test_results = validate(model, test_loader, criterion, device, val_metrics)
 
     # Evaluate EMA model if available

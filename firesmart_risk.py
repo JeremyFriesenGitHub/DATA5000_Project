@@ -167,26 +167,15 @@ def compute_risk_score(min_distance_m, zone_vegetation):
     - Minimum vegetation distance (most important)
     - Vegetation density in each zone (weighted by proximity)
     """
-    # Distance component (0-5 points): closer vegetation = higher risk
-    if min_distance_m < 1.5:
-        dist_score = 5.0
-    elif min_distance_m < 10.0:
-        dist_score = 4.0 - (min_distance_m - 1.5) / 8.5 * 2.0  # 4.0 → 2.0
-    elif min_distance_m < 30.0:
-        dist_score = 2.0 - (min_distance_m - 10.0) / 20.0 * 1.5  # 2.0 → 0.5
-    else:
-        dist_score = 0.5
-
-    # Density component (0-5 points): more vegetation nearby = higher risk
+    # Density-only score: weighted sum of vegetation density per zone
     density_score = 0.0
-    weights = {"zone_1a": 2.5, "zone_1b": 1.5, "zone_2": 0.75, "zone_3": 0.25}
+    weights = {"zone_1a": 5.0, "zone_1b": 3.0, "zone_2": 1.25, "zone_3": 0.75}
     for zone_name, weight in weights.items():
         if zone_name in zone_vegetation:
             density = zone_vegetation[zone_name]["veg_density"]
             density_score += weight * density
 
-    risk_score = dist_score + density_score
-    return round(min(max(risk_score, 1.0), 10.0), 1)
+    return round(density_score, 2)
 
 
 # ============================================================
