@@ -23,9 +23,12 @@ def load_data(csv_path):
         for row in reader:
             for key in ["area_m2", "min_veg_distance_m", "risk_score",
                         "zone_1a_veg_density", "zone_1b_veg_density",
-                        "zone_2_veg_density"]:
+                        "zone_2_veg_density", "zone_3_veg_density"]:
                 val = row.get(key, "")
                 row[key] = float(val) if val not in ("", None) else None
+            # Normalize: combined CSVs use "id" instead of "tile"
+            if "tile" not in row and "id" in row:
+                row["tile"] = row["id"]
             rows.append(row)
     return rows
 
@@ -82,6 +85,7 @@ def generate_stats(rows, output_dir, community_name):
     z1a = [r["zone_1a_veg_density"] for r in rows if r["zone_1a_veg_density"] is not None]
     z1b = [r["zone_1b_veg_density"] for r in rows if r["zone_1b_veg_density"] is not None]
     z2 = [r["zone_2_veg_density"] for r in rows if r["zone_2_veg_density"] is not None]
+    z3 = [r["zone_3_veg_density"] for r in rows if r.get("zone_3_veg_density") is not None]
 
     # Tiles with buildings
     tiles_with_buildings = len(set(r["tile"] for r in rows))
@@ -138,6 +142,7 @@ def generate_stats(rows, output_dir, community_name):
     z1a_nonzero = [v for v in z1a if v > 0]
     z1b_nonzero = [v for v in z1b if v > 0]
     z2_nonzero = [v for v in z2 if v > 0]
+    z3_nonzero = [v for v in z3 if v > 0]
 
     # Stats objects
     rs = compute_stats(risk_scores)
@@ -146,6 +151,7 @@ def generate_stats(rows, output_dir, community_name):
     z1a_s = compute_stats(z1a)
     z1b_s = compute_stats(z1b)
     z2_s = compute_stats(z2)
+    z3_s = compute_stats(z3)
 
     # Compliance totals
     compliant = compliance.get("compliant", 0)
@@ -192,6 +198,7 @@ def generate_stats(rows, output_dir, community_name):
         ("zone_1a", z1a_s, z1a_nonzero, z1a),
         ("zone_1b", z1b_s, z1b_nonzero, z1b),
         ("zone_2", z2_s, z2_nonzero, z2),
+        ("zone_3", z3_s, z3_nonzero, z3),
     ]:
         for k, v in zstats.items():
             add(f"{zname}_density", k, v if v is not None else "")
@@ -278,6 +285,7 @@ def generate_stats(rows, output_dir, community_name):
             ("Zone 1a (0-1.5m)", z1a_s, z1a_nonzero, z1a),
             ("Zone 1b (1.5-10m)", z1b_s, z1b_nonzero, z1b),
             ("Zone 2  (10-30m)", z2_s, z2_nonzero, z2),
+            ("Zone 3  (30m+)", z3_s, z3_nonzero, z3),
         ]:
             pct_veg = round(len(znz) / len(ztotal) * 100, 1) if ztotal else 0
             f.write(f"  {zlabel}:\n")

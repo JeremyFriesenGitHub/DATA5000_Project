@@ -48,7 +48,7 @@ ZONES = {
     "zone_1a": {"min_m": 0.0,  "max_m": 1.5,  "color": [255, 0, 0],     "label": "Critical (0-1.5m)"},
     "zone_1b": {"min_m": 1.5,  "max_m": 10.0,  "color": [255, 128, 0],   "label": "High (1.5-10m)"},
     "zone_2":  {"min_m": 10.0, "max_m": 30.0,  "color": [255, 255, 0],   "label": "Moderate (10-30m)"},
-    "zone_3":  {"min_m": 30.0, "max_m": 999.0, "color": [0, 200, 0],     "label": "Low (30m+)"},
+    "zone_3":  {"min_m": 30.0, "max_m": 999.0, "color": [100, 180, 255], "label": "Low (30m+)"},
 }
 
 BUFFER_M = 35.0  # buffer beyond parcel boundary for FireSmart zone computation
@@ -413,7 +413,9 @@ def main():
     parser.add_argument("--masks_dir", type=str, required=True, help="Directory with inference results")
     parser.add_argument("--parcels", type=str, required=True, help="Path to parcel shapefile (.shp)")
     parser.add_argument("--output_dir", type=str, default="./firesmart_property_results")
+    parser.add_argument("--pids", type=str, default="", help="Comma-separated PIDs to process (empty=all)")
     args = parser.parse_args()
+    target_pids = set(args.pids.split(",")) if args.pids else None
 
     output_dir = Path(args.output_dir)
     (output_dir / "overlay").mkdir(parents=True, exist_ok=True)
@@ -482,6 +484,8 @@ def main():
         rec_dict = dict(zip(fields, rec))
 
         pid = rec_dict.get("PID", "")
+        if target_pids and pid not in target_pids:
+            continue
         pid_fmt = rec_dict.get("PID_FORMAT", pid)
         owner_type = rec_dict.get("OWNER_TYPE", "")
         parcel_area_m2 = rec_dict.get("FEATURE_AR", 0)

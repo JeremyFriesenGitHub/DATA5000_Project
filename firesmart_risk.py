@@ -52,7 +52,7 @@ ZONES = {
     "zone_1a": {"min_m": 0.0,  "max_m": 1.5,  "color": [255, 0, 0],     "label": "Critical (0-1.5m)"},
     "zone_1b": {"min_m": 1.5,  "max_m": 10.0,  "color": [255, 128, 0],   "label": "High (1.5-10m)"},
     "zone_2":  {"min_m": 10.0, "max_m": 30.0,  "color": [255, 255, 0],   "label": "Moderate (10-30m)"},
-    "zone_3":  {"min_m": 30.0, "max_m": 999.0, "color": [0, 200, 0],     "label": "Low (30m+)"},
+    "zone_3":  {"min_m": 30.0, "max_m": 999.0, "color": [100, 180, 255], "label": "Low (30m+)"},
 }
 
 

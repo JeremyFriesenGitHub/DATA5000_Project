@@ -41,7 +41,7 @@ ZONES = {
     "zone_1a": {"min_m": 0.0,  "max_m": 1.5,  "color": [255, 0, 0],     "label": "Critical (0-1.5m)"},
     "zone_1b": {"min_m": 1.5,  "max_m": 10.0, "color": [255, 128, 0],   "label": "High (1.5-10m)"},
     "zone_2":  {"min_m": 10.0, "max_m": 30.0, "color": [255, 255, 0],   "label": "Moderate (10-30m)"},
-    "zone_3":  {"min_m": 30.0, "max_m": 999.0,"color": [0, 200, 0],     "label": "Low (30m+)"},
+    "zone_3":  {"min_m": 30.0, "max_m": 999.0,"color": [100, 180, 255],  "label": "Low (30m+)"},
 }
 
 DENSITY_WEIGHTS = {"zone_1a": 5.0, "zone_1b": 3.0, "zone_2": 1.25, "zone_3": 0.75}
@@ -193,13 +193,16 @@ def compute_building_risk(building_mask_single, woodland_mask, gsd_x, gsd_y, par
         veg_on_parcel = veg_pixels
         veg_off_parcel = np.zeros_like(veg_pixels)
 
-    if veg_pixels.any():
+    min_dist_on = float(dist_m[veg_on_parcel].min()) if veg_on_parcel.any() else 999.0
+    min_dist_off = float(dist_m[veg_off_parcel].min()) if veg_off_parcel.any() else 999.0
+
+    # Main min distance uses on-parcel veg only when parcel boundary is provided
+    if parcel_mask is not None:
+        min_distance_m = min_dist_on
+    elif veg_pixels.any():
         min_distance_m = float(dist_m[veg_pixels].min())
     else:
         min_distance_m = 999.0
-
-    min_dist_on = float(dist_m[veg_on_parcel].min()) if veg_on_parcel.any() else 999.0
-    min_dist_off = float(dist_m[veg_off_parcel].min()) if veg_off_parcel.any() else 999.0
 
     # Vegetation density per zone
     zone_vegetation = {}
@@ -207,16 +210,18 @@ def compute_building_risk(building_mask_single, woodland_mask, gsd_x, gsd_y, par
         zone_ring = (dist_m >= zone_def["min_m"]) & (dist_m < zone_def["max_m"])
         zone_ring = zone_ring & (~(building_mask_single > 0))
 
-        zone_total = int(zone_ring.sum())
-        zone_veg = int((zone_ring & veg_pixels).sum())
-
         zone_veg_on = int((zone_ring & veg_on_parcel).sum())
         zone_veg_off = int((zone_ring & veg_off_parcel).sum())
 
         if parcel_mask is not None:
             zone_on_total = int((zone_ring & on_parcel).sum())
             zone_off_total = int((zone_ring & ~on_parcel).sum())
+            # Main density uses only on-parcel area when parcel boundary is provided
+            zone_total = zone_on_total
+            zone_veg = zone_veg_on
         else:
+            zone_total = int(zone_ring.sum())
+            zone_veg = int((zone_ring & veg_pixels).sum())
             zone_on_total = zone_total
             zone_off_total = 0
 
@@ -679,7 +684,7 @@ def load_image_region_from_tiles(tile_metas, row_start, row_end, col_start, col_
     return result
 
 
-def run_parcel_eval(region_name, config):
+def run_parcel_eval(region_name, config, target_pids=None):
     """Run parcel-level FireSmart evaluation for a region."""
     parcels_path = BASE_DIR / config["parcels"]
     if not parcels_path.exists():
@@ -743,6 +748,8 @@ def run_parcel_eval(region_name, config):
         rec_dict = dict(zip(fields, rec))
 
         pid = rec_dict.get("PID", str(idx))
+        if target_pids and pid not in target_pids:
+            continue
         pid_fmt = rec_dict.get("PID_FORMAT", pid)
         owner_type = rec_dict.get("OWNER_TYPE", "")
         parcel_area_m2 = rec_dict.get("FEATURE_AR", 0)
@@ -1306,7 +1313,10 @@ def main():
                         help="Skip tile-level evaluation")
     parser.add_argument("--skip-combined", action="store_true",
                         help="Skip combined neighborhood evaluation")
+    parser.add_argument("--pids", type=str, default="",
+                        help="Comma-separated PIDs to filter parcel eval (empty=all)")
     args = parser.parse_args()
+    target_pids = set(args.pids.split(",")) if args.pids else None
 
     print("=" * 60)
     print("LOW-RESOLUTION FIRESMART EVALUATION")
@@ -1330,7 +1340,7 @@ def main():
             run_tile_eval(region_name, config)
 
         if not args.skip_parcels:
-            run_parcel_eval(region_name, config)
+            run_parcel_eval(region_name, config, target_pids=target_pids)
 
         if not args.skip_combined:
             run_combined_eval(region_name, config)

@@ -32,7 +32,7 @@ def load_data(csv_path):
                         "mean_risk_score", "min_veg_distance_m",
                         "min_veg_dist_on_parcel", "min_veg_dist_off_parcel",
                         "zone_1a_veg_density", "zone_1b_veg_density",
-                        "zone_2_veg_density",
+                        "zone_2_veg_density", "zone_3_veg_density",
                         "zone_1a_on_parcel", "zone_1a_off_parcel",
                         "zone_1b_on_parcel", "zone_1b_off_parcel",
                         "zone_2_on_parcel", "zone_2_off_parcel"]:
@@ -160,6 +160,7 @@ def generate_stats(rows, output_dir):
     z1a_densities = [r["zone_1a_veg_density"] for r in with_buildings if r["zone_1a_veg_density"] is not None]
     z1b_densities = [r["zone_1b_veg_density"] for r in with_buildings if r["zone_1b_veg_density"] is not None]
     z2_densities = [r["zone_2_veg_density"] for r in with_buildings if r["zone_2_veg_density"] is not None]
+    z3_densities = [r.get("zone_3_veg_density") for r in with_buildings if r.get("zone_3_veg_density") is not None]
     building_counts = [r["num_buildings"] for r in with_buildings]
     parcel_areas = [r["parcel_area_m2"] for r in all_parcels if r["parcel_area_m2"] is not None]
 
@@ -201,6 +202,7 @@ def generate_stats(rows, output_dir):
     z1a_nonzero = [v for v in z1a_densities if v > 0]
     z1b_nonzero = [v for v in z1b_densities if v > 0]
     z2_nonzero = [v for v in z2_densities if v > 0]
+    z3_nonzero = [v for v in z3_densities if v > 0]
 
     # ── Risk score distribution (histogram bins) ──
     score_bins = {"1-2": 0, "2-3": 0, "3-4": 0, "4-5": 0, "5-6": 0,
